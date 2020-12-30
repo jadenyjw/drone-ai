@@ -81,4 +81,5 @@ dependencies {
         //exclude module: 'fly-safe-database'
     })
     compileOnly 'com.dji:dji-sdk-provided:4.14-trial1'
+    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
 }

@@ -30,9 +30,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import dji.common.error.DJIError;
 import dji.common.error.DJISDKError;
+import dji.common.product.Model;
 import dji.log.DJILog;
 import dji.sdk.base.BaseComponent;
 import dji.sdk.base.BaseProduct;
+import dji.sdk.camera.Camera;
+import dji.sdk.camera.VideoFeeder;
+import dji.sdk.codec.DJICodecManager;
 import dji.sdk.sdkmanager.DJISDKInitEvent;
 import dji.sdk.sdkmanager.DJISDKManager;
 import dji.thirdparty.afinal.core.AsyncTask;
@@ -60,7 +64,10 @@ public class FullscreenActivity extends AppCompatActivity implements TextureView
      */
 
     private static final String TAG = FullscreenActivity.class.getName();
+    protected VideoFeeder.VideoDataListener mReceivedVideoDataListener = null;
+    protected DJICodecManager mCodecManager = null;
 
+    private Handler handler;
 
     private static final String[] REQUIRED_PERMISSION_LIST = new String[]{
             Manifest.permission.VIBRATE,
@@ -170,12 +177,29 @@ public class FullscreenActivity extends AppCompatActivity implements TextureView
         // while interacting with the UI.
         findViewById(R.id.dummy_button).setOnTouchListener(mDelayHideTouchListener);
 
+        handler = new Handler();
+
         initUI();
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(DroneAIApplication.FLAG_CONNECTION_CHANGE);
         registerReceiver(mReceiver, filter);
 
+        // The callback for receiving the raw H264 video data for camera live view
+        mReceivedVideoDataListener = new VideoFeeder.VideoDataListener() {
+
+            @Override
+            public void onReceive(byte[] videoBuffer, int size) {
+                if (mCodecManager != null) {
+                    mCodecManager.sendDataToDecoder(videoBuffer, size);
+                }
+            }
+        };
+
+    }
+
+    protected void onProductChange() {
+        initPreviewer();
     }
 
     private void checkAndRequestPermissions() {
@@ -347,10 +371,17 @@ public class FullscreenActivity extends AppCompatActivity implements TextureView
     @Override
     public void onResume() {
         super.onResume();
+        initPreviewer();
+        onProductChange();
+
+        if(mVideoSurface == null) {
+            Log.e(TAG, "mVideoSurface is null");
+        }
     }
 
     @Override
     public void onPause() {
+        uninitPreviewer();
         super.onPause();
     }
 
@@ -367,11 +398,15 @@ public class FullscreenActivity extends AppCompatActivity implements TextureView
     @Override
     protected void onDestroy() {
         unregisterReceiver(mReceiver);
+        uninitPreviewer();
         super.onDestroy();
     }
 
     @Override
     public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surface, int width, int height) {
+        if (mCodecManager == null) {
+            mCodecManager = new DJICodecManager(this, surface, width, height);
+        }
 
     }
 
@@ -382,6 +417,10 @@ public class FullscreenActivity extends AppCompatActivity implements TextureView
 
     @Override
     public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture surface) {
+        if (mCodecManager != null) {
+            mCodecManager.cleanSurface();
+            mCodecManager = null;
+        }
         return false;
     }
 
@@ -397,6 +436,33 @@ public class FullscreenActivity extends AppCompatActivity implements TextureView
             mVideoSurface.setSurfaceTextureListener(this);
         }
     }
+
+
+    private void initPreviewer() {
+
+        BaseProduct product = DroneAIApplication.getProductInstance();
+
+        if (product == null || !product.isConnected()) {
+            showToast("Disconnected.");
+        } else {
+            if (null != mVideoSurface) {
+                mVideoSurface.setSurfaceTextureListener(this);
+            }
+            if (!product.getModel().equals(Model.UNKNOWN_AIRCRAFT)) {
+                VideoFeeder.getInstance().getPrimaryVideoFeed().addVideoDataListener(mReceivedVideoDataListener);
+            }
+        }
+    }
+
+    private void uninitPreviewer() {
+        Camera camera = DroneAIApplication.getCameraInstance();
+        if (camera != null){
+            // Reset the callback
+            VideoFeeder.getInstance().getPrimaryVideoFeed().addVideoDataListener(null);
+        }
+    }
+
+
 
     protected BroadcastReceiver mReceiver = new BroadcastReceiver() {
 

@@ -2,14 +2,18 @@ plugins {
     id 'com.android.application'
 }
 
+
+
 android {
     compileSdkVersion 30
     buildToolsVersion "30.0.3"
+    useLibrary 'org.apache.http.legacy'
 
     defaultConfig {
         applicationId "me.jadenyjw.droneai"
-        minSdkVersion 29
+        minSdkVersion 19
         targetSdkVersion 30
+        multiDexEnabled true
         versionCode 1
         versionName "1.0"
 
@@ -21,7 +25,9 @@ android {
         }
 
         // Inject the Maps API key into the manifest
-        manifestPlaceholders = [ djiKey  : properties.getProperty("DJI_KEY", "") ]
+        manifestPlaceholders = [ djiKey : properties.getProperty("DJI_KEY", "") ]
+
+
     }
 
     buildTypes {
@@ -82,4 +88,9 @@ dependencies {
     })
     compileOnly 'com.dji:dji-sdk-provided:4.14-trial1'
     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
+    implementation 'androidx.multidex:multidex:2.0.0'
+    implementation 'androidx.lifecycle:lifecycle-extensions:2.0.0-rc01'
+    implementation 'com.squareup:otto:1.3.8'
 }
+
+apply from : "https://terra-1-g.djicdn.com/71a7d383e71a4fb8887a310eb746b47f/msdk/Android-CommonConfig/config_sample_all.gradle"

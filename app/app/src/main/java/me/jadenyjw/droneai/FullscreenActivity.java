@@ -275,11 +275,6 @@ public class FullscreenActivity extends AppCompatActivity implements TextureView
                         }
 
                         @Override
-                        public void onProductChanged(BaseProduct baseProduct) {
-
-                        }
-
-                        @Override
                         public void onComponentChange(BaseProduct.ComponentKey componentKey, BaseComponent oldComponent,
                                                       BaseComponent newComponent) {
 
@@ -301,13 +296,15 @@ public class FullscreenActivity extends AppCompatActivity implements TextureView
                         }
 
                         @Override
-                        public void onInitProcess(DJISDKInitEvent djisdkInitEvent, int i) {
+                        public void onProductChanged(BaseProduct baseProduct) {
+                        }
 
+                        @Override
+                        public void onInitProcess(DJISDKInitEvent djisdkInitEvent, int i) {
                         }
 
                         @Override
                         public void onDatabaseDownloadProgress(long l, long l1) {
-
                         }
                     });
                 }
